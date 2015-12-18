@@ -6,6 +6,7 @@ var $           = require('gulp-load-plugins')();
 var Server      = require('karma').Server;
 var webpack     = require('webpack-stream');
 var argv        = require('yargs').argv;
+var runSequence = require('run-sequence');
 
 // -------------------------------------------
 // Configuration
@@ -242,7 +243,9 @@ var buildTasks = [
 ];
 
 /* Build everything */
-gulp.task('build', buildTasks.concat(['webpack']));
+gulp.task('build', function(done){
+  runSequence('clean', buildTasks.concat(['webpack']), done);
+});
 
 /* Watch for individual file changes and build as needed */
 gulp.task('watch', ['build'], function(){
