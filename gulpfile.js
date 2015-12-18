@@ -4,6 +4,20 @@ var browserSync = require('browser-sync');
 var gulp        = require('gulp');
 var $           = require('gulp-load-plugins')();
 var Server      = require('karma').Server;
+var webpack     = require('webpack-stream');
+var argv        = require('yargs').argv;
+
+// -------------------------------------------
+// Configuration
+// -------------------------------------------
+
+// Make sure to install these dependencies before using express
+//  npm install express --save
+//  npm install ejs --save
+var USE_EXPRESS = false;
+var SERVER_PORT = process.env.PORT || 7008;
+
+// -------------------------------------------
 
 var paths = {
   src:   __dirname + '/src',
@@ -21,7 +35,8 @@ var patterns = {
   data        : paths.src + '/data/**/*.!(json)',
   appImages   : paths.src + '/app/**/*.@(png|gif|jpg|jpeg|tiff)',
   images      : paths.src + '/images/**/*',
-  fonts       : paths.src + '/fonts/**/*'
+  fonts       : paths.src + '/fonts/**/*',
+  html        : paths.src + '/*.html'
 };
 
 gulp.task('clean', function () {
@@ -55,6 +70,18 @@ gulp.task('fonts', function(){
   var dest = paths.dist + '/fonts';
   return gulp.src(patterns.fonts)
     .pipe($.newer(dest))
+    .pipe(gulp.dest(dest));
+});
+
+gulp.task('html', function(){
+  var dest = paths.dist;
+  return gulp.src(patterns.html)
+    .pipe($.newer(dest))
+    .pipe($.htmlmin({
+      removeComments: true,
+      collapseWhitespace: true,
+      conservativeCollapse: true
+    }))
     .pipe(gulp.dest(dest));
 });
 
@@ -98,63 +125,52 @@ gulp.task('ngtemplates', function () {
     }))
     .pipe($.ngTemplates({
       filename: 'bundle.ngtemplates.js',
-      module: 'pulseTools',
+      module: 'app.templates',
       standalone: false
     }))
     .pipe(gulp.dest(paths.dist + '/app'));
 });
 
-var webpackConfig = {
-  output: {
-    filename: 'bundle.js',
-    sourceMapFilename: '[file].map'
-  },
-  module:{
-    loaders: [{
-      test: /\.json$/,
-      loader: 'json-loader'
-    }]
-  },
-  resolve: {
-    alias: {
-      'angular-d3kit-adapter': paths.bower + '/angular-d3kit-adapter/dist/angular-d3kit-adapter.js',
-      'angular-json-editor':   paths.src + '/vendor/angular-json-editor/angular-json-editor-custom.js',
-      'axios':                 paths.bower + '/axios/dist/axios.min.js',
-      'd3':                    paths.bower + '/d3/d3.min.js',
-      'd3Kit':                 paths.bower + '/d3kit/dist/d3kit.min.js',
-      'filesaver':             paths.bower + '/file-saver.js/FileSaver.js',
-      'jquery':                paths.bower + '/jquery/dist/jquery.min.js',
-      'json-editor':           paths.bower + '/json-editor/dist/jsoneditor.min.js',
-      'moment':                paths.bower + '/moment/min/moment.min.js',
-      'moment-timezone':       paths.bower + '/moment-timezone/builds/moment-timezone-with-data-2010-2020.min.js',
-      'select2':               paths.bower + '/select2/dist/js/select2.min.js'
-    }
-  }
-};
-
-gulp.task('webpack:dev', function() {
+gulp.task('webpack', function() {
   return gulp.src(paths.src + '/app/main.js')
-    .pipe($.webpack(_.extend({}, webpackConfig, {
-      devtool: 'eval' // '#cheap-module-eval-source-map'
-    })))
-    .pipe(gulp.dest(paths.dist + '/app'));
-});
-
-gulp.task('webpack:prod', function() {
-  return gulp.src(paths.src + '/app/main.js')
-    .pipe($.webpack(webpackConfig))
-    .pipe($.uglify({
+    .pipe(webpack({
+      output: {
+        filename: 'bundle.js',
+        sourceMapFilename: '[file].map'
+      },
+      module:{
+        loaders: [{
+          test: /\.json$/,
+          loader: 'json-loader'
+        }]
+      },
+      resolve: {
+        alias: {
+          'angular-d3kit-adapter': paths.bower + '/angular-d3kit-adapter/dist/angular-d3kit-adapter.js',
+          'angular-json-editor':   paths.src + '/vendor/angular-json-editor/angular-json-editor-custom.js',
+          'axios':                 paths.bower + '/axios/dist/axios.min.js',
+          'd3':                    paths.bower + '/d3/d3.min.js',
+          'd3Kit':                 paths.bower + '/d3kit/dist/d3kit.min.js',
+          'filesaver':             paths.bower + '/file-saver.js/FileSaver.js',
+          'jquery':                paths.bower + '/jquery/dist/jquery.min.js',
+          'json-editor':           paths.bower + '/json-editor/dist/jsoneditor.min.js',
+          'moment':                paths.bower + '/moment/min/moment.min.js',
+          'moment-timezone':       paths.bower + '/moment-timezone/builds/moment-timezone-with-data-2010-2020.min.js',
+          'select2':               paths.bower + '/select2/dist/js/select2.min.js'
+        }
+      },
+      devtool: argv.production ? undefined : 'eval'
+    }))
+    .pipe($.if(argv.production, $.uglify({
       report: 'min',
       mangle: false,
       compress: false, //true,
       preserveComments: false
-    }))
+    })))
     .pipe(gulp.dest(paths.dist + '/app'));
 });
 
-/**
- * Run test once and exit
- */
+/* Run test once and exit */
 gulp.task('test', function (done) {
   new Server({
     configFile: __dirname + '/karma.conf.js',
@@ -162,55 +178,54 @@ gulp.task('test', function (done) {
   }, done).start();
 });
 
-/**
- * Watch for file changes and re-run tests on each change
- */
+/* Watch for file changes and re-run tests on each change */
 gulp.task('tdd', function (done) {
   new Server({
     configFile: __dirname + '/karma.conf.js'
   }, done).start();
 });
 
-gulp.task('browser-sync', ['server:dev'], function() {
-  var SERVER_PORT = process.env.PORT || 7008;
-  browserSync.init(null, {
-    proxy: 'http://localhost:' + SERVER_PORT,
-    files: ['dist/**/*.*', 'server/**/*.ejs'],
-    browser: 'google chrome',
-    port: 7000,
-  });
+/* Start browser-sync */
+gulp.task('browser-sync', ['server'], function() {
+  if(USE_EXPRESS){
+    browserSync.init({
+      proxy: 'http://localhost:' + SERVER_PORT,
+      files: ['dist/**/*.*', 'server/**/*.ejs'],
+      browser: 'google chrome',
+      port: 7000,
+    });
+  }
+  else{
+    browserSync.init({
+      server: './dist',
+      files: ['dist/**/*.*'],
+      browser: 'google chrome',
+      port: 7000,
+    });
+  }
 });
 
-gulp.task('server:dev', ['build:dev'], function (cb) {
-  var started = false;
-  $.nodemon({
-    script: 'server.js',
-    nodeArgs: ['--debug', '--harmony'],
-    ignore: ['node_modules/**', 'src/**/*', 'dist/**/*'],
-    ext: 'js, ejs',
-    env: { NODE_ENV: 'development' }
-  }).on('start', function () {
-    if (!started) {
-      cb();
-      started = true;
-    }
-  });
-});
-
-gulp.task('server:prod', ['build'], function (cb) {
-  var started = false;
-  $.nodemon({
-    script: 'server.js',
-    nodeArgs: ['--harmony'],
-    ignore: ['node_modules/**', 'src/**/*', 'dist/**/*'],
-    ext: 'js, ejs',
-    env: { NODE_ENV: 'production' }
-  }).on('start', function () {
-    if (!started) {
-      cb();
-      started = true;
-    }
-  });
+gulp.task('server', ['build'], function (cb) {
+  if(USE_EXPRESS){
+    var started = false;
+    $.nodemon({
+      script: 'server.js',
+      nodeArgs: argv.production ? ['--harmony'] : ['--debug', '--harmony'],
+      ignore: ['node_modules/**', 'src/**/*', 'dist/**/*'],
+      ext: 'js, ejs',
+      env: {
+        NODE_ENV: argv.production ? 'production' : 'development'
+      }
+    }).on('start', function () {
+      if (!started) {
+        cb();
+        started = true;
+      }
+    });
+  }
+  else{
+    cb();
+  }
 });
 
 var buildTasks = [
@@ -222,20 +237,21 @@ var buildTasks = [
   'data',
   'appImages',
   'images',
-  'fonts'
+  'fonts',
+  'html'
 ];
 
-gulp.task('watch', ['build:dev'], function(){
+/* Build everything */
+gulp.task('build', buildTasks.concat(['webpack']));
+
+/* Watch for individual file changes and build as needed */
+gulp.task('watch', ['build'], function(){
   buildTasks.forEach(function(task){
     gulp.watch(patterns[task], [task]);
   });
 
-  gulp.watch(patterns.js,  ['webpack:dev']);
+  gulp.watch(patterns.js, ['webpack']);
 });
 
-gulp.task('build:dev', buildTasks.concat(['webpack:dev']));
-gulp.task('build', buildTasks.concat(['webpack:prod']));
-
-gulp.task('dev', ['watch', 'browser-sync']);
-gulp.task('prod', ['server:prod']);
-gulp.task('default', ['dev']);
+gulp.task('run', ['watch', 'browser-sync']);
+gulp.task('default', ['run']);
