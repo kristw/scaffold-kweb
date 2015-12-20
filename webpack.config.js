@@ -4,15 +4,25 @@ var paths = {
 };
 
 module.exports = {
-  output: {
-    filename: 'bundle.js',
-    sourceMapFilename: '[file].map'
-  },
   module:{
-    loaders: [{
-      test: /\.json$/,
-      loader: 'json-loader'
-    }]
+    preLoaders: [
+      // instrument only source files with Istanbul
+      {
+        test: /[^(spec)]\.js$/,
+        loader: 'istanbul-instrumenter'
+      }
+    ],
+    loaders: [
+      {
+        test: /\.json$/,
+        loader: 'json-loader'
+      },
+      {
+        test: /\.jsx?$/,
+        exclude: /(node_modules|bower_components)/,
+        loader: 'babel' // 'babel-loader' is also a legal name to reference
+      }
+    ],
   },
   resolve: {
     alias: {

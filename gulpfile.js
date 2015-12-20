@@ -137,6 +137,10 @@ gulp.task('webpack', function() {
 
   return gulp.src(paths.src + '/app/main.js')
     .pipe(webpack(_.extend({}, webpackConfig, {
+      output: {
+        filename: 'bundle.js',
+        sourceMapFilename: '[file].map'
+      },
       devtool: argv.production ? undefined : 'eval'
     })))
     .pipe($.if(argv.production, $.uglify({

@@ -1,5 +1,9 @@
 // Karma configuration
 'use strict';
+
+var _ = require('lodash');
+var webpackConfig = require('./webpack.config.js');
+
 module.exports = function(config) {
   config.set({
 
@@ -19,21 +23,12 @@ module.exports = function(config) {
     // preprocess matching files before serving them to the browser
     // available preprocessors: https://npmjs.org/browse/keyword/karma-preprocessor
     preprocessors: {
-      'src/app/**/*.spec.js': ['webpack']
+      'src/app/**/*.spec.js': ['webpack', 'sourcemap']
     },
 
-    webpack: {
-      module: {
-        preLoaders: [
-          // instrument only source files with Istanbul
-          {
-            test: /[^(spec)]\.js$/,
-            // include: path.resolve('src/components/'),
-            loader: 'istanbul-instrumenter'
-          }
-        ]
-      }
-    },
+    webpack: _.extend({}, webpackConfig, {
+      devtool: 'inline-source-map'
+    }),
 
     // test results reporter to use
     // possible values: 'dots', 'progress', 'mocha', 'coverage'
