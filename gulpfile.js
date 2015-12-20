@@ -239,3 +239,12 @@ gulp.task('watch', ['build'], function(){
 
 gulp.task('run', ['watch', 'browser-sync']);
 gulp.task('default', ['run']);
+
+// Deployment
+
+// Before use:
+// npm install gulp-gh-pages --save-dev
+gulp.task('gh-pages', function() {
+  return gulp.src(paths.dist + '/**/*')
+    .pipe($.ghPages());
+});
