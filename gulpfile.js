@@ -133,35 +133,12 @@ gulp.task('ngtemplates', function () {
 });
 
 gulp.task('webpack', function() {
+  var webpackConfig = require('./webpack.config.js');
+
   return gulp.src(paths.src + '/app/main.js')
-    .pipe(webpack({
-      output: {
-        filename: 'bundle.js',
-        sourceMapFilename: '[file].map'
-      },
-      module:{
-        loaders: [{
-          test: /\.json$/,
-          loader: 'json-loader'
-        }]
-      },
-      resolve: {
-        alias: {
-          'angular-d3kit-adapter': paths.bower + '/angular-d3kit-adapter/dist/angular-d3kit-adapter.js',
-          'angular-json-editor':   paths.src + '/vendor/angular-json-editor/angular-json-editor-custom.js',
-          'axios':                 paths.bower + '/axios/dist/axios.min.js',
-          'd3':                    paths.bower + '/d3/d3.min.js',
-          'd3Kit':                 paths.bower + '/d3kit/dist/d3kit.min.js',
-          'filesaver':             paths.bower + '/file-saver.js/FileSaver.js',
-          'jquery':                paths.bower + '/jquery/dist/jquery.min.js',
-          'json-editor':           paths.bower + '/json-editor/dist/jsoneditor.min.js',
-          'moment':                paths.bower + '/moment/min/moment.min.js',
-          'moment-timezone':       paths.bower + '/moment-timezone/builds/moment-timezone-with-data-2010-2020.min.js',
-          'select2':               paths.bower + '/select2/dist/js/select2.min.js'
-        }
-      },
+    .pipe(webpack(_.extend({}, webpackConfig, {
       devtool: argv.production ? undefined : 'eval'
-    }))
+    })))
     .pipe($.if(argv.production, $.uglify({
       report: 'min',
       mangle: false,
