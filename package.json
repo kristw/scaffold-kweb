@@ -6,8 +6,8 @@
   "author": "@kristw",
   "repository": "git@github.com:kristw/web-boilerplate.git",
   "scripts": {
-    "postinstall": "bower install && gulp build",
-    "start": "gulp prod"
+    "postinstall": "bower install && gulp build --production",
+    "start": "gulp --production"
   },
   "license": "Apache 2",
   "devDependencies": {

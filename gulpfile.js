@@ -244,7 +244,7 @@ gulp.task('default', ['run']);
 
 // Before use:
 // npm install gulp-gh-pages --save-dev
-gulp.task('gh-pages', function() {
+gulp.task('gh-pages', ['build'], function() {
   return gulp.src(paths.dist + '/**/*')
     .pipe($.ghPages());
 });
