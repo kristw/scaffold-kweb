@@ -1,4 +1,4 @@
-# web-boilerplate
+# scaffold kweb
 
 Making this for myself when I need to create a new site
 
