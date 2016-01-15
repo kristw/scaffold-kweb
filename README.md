@@ -1,4 +1,4 @@
-# scaffold kweb
+# scaffold web
 
 Making this for myself when I need to create a new site
 
